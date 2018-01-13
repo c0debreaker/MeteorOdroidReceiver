@@ -29,7 +29,7 @@ The 'scheduler' python script is all you need to run.
 
 3. Execute scheduler.py. This will download satellite pass schedules from Celestrak
 
-   $. ./scheduler.py
+   $ ./scheduler.py
 
    Note(s): Please report if there are other modules that won't be found. I'll add it to requirements.txt.
 
