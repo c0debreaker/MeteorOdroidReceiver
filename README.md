@@ -16,22 +16,24 @@ The 'scheduler' python script is all you need to run.
 
    To install pip:
 
-     $ sudo apt-get install python-pip python-dev build-essential
-     $ sudo pip install --upgrade pip
-
+```
+$ sudo apt-get install python-pip python-dev build-essential
+$ sudo pip install --upgrade pip
+```
 
    To install the required modules:
-
-     $ sudo pip install -r requirements.txt
-
+```
+$ sudo pip install -r requirements.txt
+```
 
 2. Edit user_location.txt. I retrieve my lat lon using Google Maps. The numbers are found in the url.
 
 
 3. Execute scheduler.py. This will download satellite pass schedules from Celestrak
 
-   $ ./scheduler.py
-
+```
+$ ./scheduler.py
+```
 
    Note(s): Please report if there are other modules that won't be found. I'll add it to requirements.txt.
 
