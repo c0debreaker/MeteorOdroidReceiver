@@ -19,6 +19,7 @@ The 'scheduler' python script is all you need to run.
      $ sudo apt-get install python-pip python-dev build-essential
      $ sudo pip install --upgrade pip
 
+
    To install the required modules:
 
      $ sudo pip install -r requirements.txt
@@ -30,6 +31,7 @@ The 'scheduler' python script is all you need to run.
 3. Execute scheduler.py. This will download satellite pass schedules from Celestrak
 
    $ ./scheduler.py
+
 
    Note(s): Please report if there are other modules that won't be found. I'll add it to requirements.txt.
 
