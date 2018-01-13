@@ -8,6 +8,7 @@
 # Generated: Sun Apr 02 00:56:48 2017
 ##################################################
 
+import os
 from datetime import datetime
 from gnuradio import analog
 from gnuradio import blocks
@@ -35,7 +36,7 @@ class METEOR_M2_v04_noGUI(gr.top_block):
         self.decimation = decimation = 4
         self.samp_per_sym = samp_per_sym = samp_rate/decimation/symb_rate
         self.clock_alpha = clock_alpha = 30e-3
-        self.bitstream_name = bitstream_name = "/home/pi/Projects/Python_projects/Meteor_receiver/Data/meteor_LRPT_" + datetime.now().strftime("%d%m%Y_%H%M") + ".s"
+        self.bitstream_name = bitstream_name = os.getcwd() + "/Data/meteor_LRPT_" + datetime.now().strftime("%d%m%Y_%H%M") + ".s"
         self.Tuning_offset = Tuning_offset = 300e3
         self.LO_freq = LO_freq = 137.903e6
         self.BPF_width = BPF_width = 140e3
