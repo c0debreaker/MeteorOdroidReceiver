@@ -12,11 +12,6 @@ scheduler_v0.2.8 is a copy of v0.2:
 	added mail list
 	added seperate file for personal info
 
-	expected formatting of email_config.txt:
-		displayed username
-		e-mail address (gmail)
-		password
-
 	expected formatting of user_location.txt:
 		Longitude (East is positive)
 		Latitude (North is positive)
@@ -38,7 +33,6 @@ import logging
 from logging.handlers import RotatingFileHandler
 from logging import handlers
 import psutil
-import smtplib
 import platform
 from os import listdir
 from os.path import isfile, join, getmtime
@@ -52,9 +46,7 @@ script_name = os.path.splitext(os.path.basename(__file__))[0]
 log_filename = script_name + '.log'
 deg_per_rad = 180 / math.pi
 speed_of_light = 299792458 #m/s
-main_folder = os.path.join(os.path.expanduser('~'),'Projects/Python_projects/Meteor_receiver')
-#main_folder = os.path.dirname(__file__)	somehow, this doesn't seem to return the path on the rpi
-#print 'main_folder was found to be: %s' % main_folder
+main_folder = os.getcwd()
 
 # configure logging
 log = logging.getLogger('')
@@ -86,16 +78,10 @@ if not os.path.exists(os.path.join(main_folder, 'TLE')):
 	logging.debug('Created TLE directory')
 
 # GRC script to launch
-#grc_script = './GRC/METEOR_M2_v05.py'
-#grc_script = './GRC/METEOR_M2_v05_noGUI.py'
-grc_script = 'GRC/METEOR_M2_v04_noGUI.py'
+grc_script = 'bin/meteor_m2_nogui.py'
 grc_script = os.path.join(main_folder, grc_script)
 SDR_capture = [sys.executable, grc_script]
 logging.debug('GRC script: ' + grc_script)
-
-# doppler server address & port
-# grc_server = xmlrpclib.Server("http://localhost:8080")
-# logging.debug(grc_server)
 
 # set observer location
 with open(os.path.join(main_folder, 'user_location.txt')) as f:
@@ -114,8 +100,6 @@ TLE_offline_path = os.path.join(main_folder, 'TLE/weather.txt')
 sat_name = 'METEOR-M 2 '
 logging.debug('Sat name: ' + sat_name)
 
-
-
 def retrieve_tle(satellite):
 	logging.debug('trying TLE download...')
 	try:
@@ -130,7 +114,7 @@ def retrieve_tle(satellite):
 		with open(TLE_offline_path, 'w') as f:
 			for line in tle_file:
 				f.write(line)
-	
+
 	for i in range (0, len(tle_file)):
 		line = tle_file[i]
 		if line[:11] == satellite:
@@ -162,19 +146,24 @@ def decode_capture():
 			mod_time = getmtime(join(mypath, file))
 			date = datetime.datetime.fromtimestamp(mod_time)
 			if date > (datetime.datetime.now() - datetime.timedelta(minutes=30)):
-				
+
 				valid_file = True
 
 				LRPT_soft = os.path.join(mypath, file)
 				output_file = os.path.join(mypath, file[:-2])	# remove last 2 characters, i.e. the .s extension
 				os.chdir(main_folder)
 				if platform.machine() == 'x86_64':
-					medet_command = './Decoder/medet' + " " + LRPT_soft + " " + output_file + " -Q"	# if on linux64
-				elif platform.machine().startswith('arm'):
-					medet_command = './Decoder/medet_arm' + " " + LRPT_soft + " " + output_file + " -Q"	# if on rpi
+					if platform.system() == 'Linux':
+					    medet_command = './bin/medet' + " " + LRPT_soft + " " + output_file + " -Q"
+					elif platform.system() == 'Darwin':
+					    medet_command = './bin/medet_mac' + " " + LRPT_soft + " " + output_file + " -Q"
+					else:
+					    medet_command = './bin/medet_mac' + " " + LRPT_soft + " " + output_file + " -Q"
+				elif platform.machine().startswith('arm') or platform.machine().startswith('aarch'):
+					medet_command = './bin/medet_arm' + " " + LRPT_soft + " " + output_file + " -Q"	# if on rpi or odroid
 				else:
 					logging.error('platform unsupported by decoder')
-					return 'none'		# I'm not sure what else to do here...
+					return 'none'
 
 				logging.debug('running: ' + medet_command)
 
@@ -195,7 +184,7 @@ def decode_capture():
 	else:
 		logging.debug('decoding: no recent file was found')
 		return 'none'
-	
+
 
 def process_image(file_name):
 	if file_name <> 'none':
@@ -230,58 +219,6 @@ def process_image(file_name):
 			image_ir.save(image_dir)
 			logging.debug('Saved %s' % image_dir)
 	return file_name 	# if no raw image was decoded, the above exception will have returned 'none' already
-
-
-def email_image(file_name):
-
-	if file_name <> 'none':
-
-		with open(os.path.join(main_folder, 'mail_list.txt')) as f:
-			mail_list = f.read().splitlines()
-
-		with open(os.path.join(main_folder, 'email_config.txt')) as f:
-			email_credentials = f.read().splitlines()
-
-		msg = MIMEMultipart()
-		msg['Subject'] = 'METEOR-M2 image'
-		msg['From'] = email_credentials[0]
-		msg.preamble = 'METEOR-M2 image: %s' % file_name
-
-		msg.attach(MIMEText(file_name))
-		
-		image_122 = os.path.join(main_folder, 'Images', file_name + '_122.jpg')
-		fp = open(image_122, 'rb')
-		img = MIMEImage(fp.read())
-		fp.close()
-		img.add_header('Content-Disposition', 'attachment', filename=file_name + '_122.jpg')
-		msg.attach(img)
-
-		image_555 = os.path.join(main_folder, 'Images', file_name + '_555_IR.jpg')
-		fp = open(image_555, 'rb')
-		img = MIMEImage(fp.read())
-		fp.close()
-		img.add_header('Content-Disposition', 'attachment', filename=file_name + '_555_IR.jpg')
-		msg.attach(img)
-
-		try:
-			mail_server = smtplib.SMTP_SSL('smtp.gmail.com')
-			logging.debug('logging into mail server')
-
-			mail_server.login(email_credentials[1], email_credentials[2])
-			logging.debug('logged in, sending e-mail')
-			
-			mail_server.sendmail(email_credentials[1], mail_list, msg.as_string())
-			logging.debug('e-mail sent, logging out')
-			
-			mail_server.quit()
-			logging.debug('logged out of mail server')
-		except:
-			logging.debug('There was a problem sending the e-mail')
-	else:
-		logging.debug('no e-mail sent as there was no decoded image')
-
-
-
 
 while True:
 	# 1) download & extract TLE
@@ -331,7 +268,7 @@ while True:
 
 		print('elevation %4.2f deg, azimuth %5.2f deg' % (meteor_M2.alt * deg_per_rad, meteor_M2.az * deg_per_rad))
 		#print('velocity %4.2f m/s' % meteor_M2.range_velocity)
-		
+
 		time.sleep(1)
 
 
@@ -353,8 +290,5 @@ while True:
 
 	# 7) process decoded image
 	image_file_name = process_image(file_name)			# by default no wine on ARM devices (to use e.g. LrptImageProcessor.exe, so only basic RGB channel processing
-
-	# 8) e-mail final images to mail list
-	email_image(image_file_name)
 
 	logging.debug('all done, start over for next pass')

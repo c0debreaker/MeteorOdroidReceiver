@@ -1,2 +1,0 @@
-email_address_1@gmail.com
-email_address_2@gmail.com
